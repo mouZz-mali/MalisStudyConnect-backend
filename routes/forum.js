@@ -62,9 +62,25 @@ router.post('/:id/answers', auth, async (req, res) => {
     });
 
     await question.save();
-    res.status(201).json(question);
+    res.status(201).json(question); // ✅ Renvoie la question complète
   } catch (err) {
     console.error(err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/forum/:id/answers
+router.get('/:id/answers', auth, async (req, res) => {
+  try {
+    const question = await ForumQuestion.findById(req.params.id)
+      .populate('answers.author', 'fullName email'); // ✅ Popule l'auteur des réponses
+
+    if (!question) {
+      return res.status(404).json({ msg: 'Question non trouvée' });
+    }
+
+    res.json(question.answers);
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
