@@ -2,7 +2,7 @@
 const mongoose = require('mongoose');
 
 // ✅ Importe tous les modèles centralisés
-require('../models');
+require('../models/User');
 
 const connectDB = async () => {
   try {
