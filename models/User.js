@@ -6,8 +6,8 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   university: { type: String, required: true },
   department: { type: String, required: true },
-  courses: [{ type: String }],
-  createdAt: { type: Date, default: Date.now }
+  courses: { type: [String], required: true },
+  createdAt: { type: Date, default: Date.now },
 });
 
 module.exports = mongoose.model('user', userSchema);
