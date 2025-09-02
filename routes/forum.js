@@ -1,3 +1,4 @@
+// routes/forum.js
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/authJwt');
@@ -25,7 +26,7 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
-// GET /api/forum?course=L2-Math
+// GET /api/forum?course=...
 router.get('/', auth, async (req, res) => {
   const { course } = req.query;
   if (!course) {
@@ -34,7 +35,7 @@ router.get('/', auth, async (req, res) => {
 
   try {
     const questions = await ForumQuestion.find({ course })
-      .populate('author', 'fullName email')
+      .populate('author', 'fullName email') // ✅ Renvoie le nom
       .sort({ createdAt: -1 });
     res.json(questions);
   } catch (err) {
@@ -62,7 +63,7 @@ router.post('/:id/answers', auth, async (req, res) => {
     });
 
     await question.save();
-    res.status(201).json(question); // ✅ Renvoie la question complète
+    res.status(201).json(question);
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ error: err.message });
@@ -73,7 +74,7 @@ router.post('/:id/answers', auth, async (req, res) => {
 router.get('/:id/answers', auth, async (req, res) => {
   try {
     const question = await ForumQuestion.findById(req.params.id)
-      .populate('answers.author', 'fullName email'); // ✅ Popule l'auteur des réponses
+      .populate('answers.author', 'fullName email'); // ✅ Renvoie le nom des auteurs des réponses
 
     if (!question) {
       return res.status(404).json({ msg: 'Question non trouvée' });
@@ -81,6 +82,7 @@ router.get('/:id/answers', auth, async (req, res) => {
 
     res.json(question.answers);
   } catch (err) {
+    console.error(err.message);
     res.status(500).json({ error: err.message });
   }
 });

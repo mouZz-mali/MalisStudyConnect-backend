@@ -1,7 +1,7 @@
 // config/db.js
 const mongoose = require('mongoose');
 
-// ✅ Importe tous les modèles centralisés
+// ✅ Importe le modèle User POUR que Mongoose le connaisse
 require('../models/User');
 
 const connectDB = async () => {
