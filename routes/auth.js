@@ -43,22 +43,48 @@ router.post('/signup', async (req, res) => {
 });
 
 // Connexion
+// POST /api/auth/login
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
   try {
     const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ msg: 'Identifiants incorrects' });
+    if (!user) return res.status(400).json({ msg: 'Identifiants invalides' });
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ msg: 'Mot de passe incorrect' });
+    if (!isMatch) return res.status(400).json({ msg: 'Identifiants invalides' });
 
-    const payload = { userId: user._id };
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+    // 🔐 Génère un accessToken (valide 1h)
+    const accessToken = jwt.sign(
+      { userId: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
 
-    res.json({ token });
+    // 🔁 Génère un refreshToken (valide 7 jours)
+    const refreshToken = jwt.sign(
+      { userId: user._id },
+      process.env.REFRESH_TOKEN_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    // 🔐 Sauvegarde le refreshToken dans la base (optionnel, mais recommandé)
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    res.json({
+      token: accessToken,
+      refreshToken, // ✅ Envoyé au frontend
+      user: {
+        fullName: user.fullName,
+        email: user.email,
+        university: user.university,
+        department: user.department,
+        courses: user.courses,
+      },
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).send('Erreur serveur');
   }
 });
 
