@@ -87,4 +87,32 @@ router.get('/:id/answers', auth, async (req, res) => {
   }
 });
 
+// POST /api/forum/:id/upvote
+router.post('/:id/upvote', auth, async (req, res) => {
+  try {
+    const question = await ForumQuestion.findById(req.params.id);
+    if (!question) return res.status(404).json({ msg: 'Question non trouvée' });
+
+    question.upvotes += 1;
+    await question.save();
+    res.json({ upvotes: question.upvotes });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/forum/:id/downvote
+router.post('/:id/downvote', auth, async (req, res) => {
+  try {
+    const question = await ForumQuestion.findById(req.params.id);
+    if (!question) return res.status(404).json({ msg: 'Question non trouvée' });
+
+    question.downvotes += 1;
+    await question.save();
+    res.json({ downvotes: question.downvotes });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
