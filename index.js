@@ -14,6 +14,8 @@ const app = express();
 app.use((req, res, next) => {
   console.log('➡️  Requête:', req.method, req.path);
   console.log('📝 Body:', req.body);
+  console.log('🔍 Headers:', req.headers);
+  console.log('📥 Body reçu:', req.body);
   next();
 });
 
