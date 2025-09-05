@@ -8,6 +8,13 @@ const morgan = require('morgan');
 const connectDB = require('./config/db');
 connectDB();
 
+// Recemment ajouter pour le test de fonctionnement
+app.use((req, res, next) => {
+  console.log('➡️  Requête:', req.method, req.path);
+  console.log('📝 Body:', req.body);
+  next();
+});
+
 const app = express();
 
 app.use(express.json());
