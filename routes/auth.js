@@ -4,7 +4,7 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-// Inscription
+// ===================== INSCRIPTION =====================
 router.post('/signup', async (req, res) => {
   const {
     fullName,
@@ -42,8 +42,7 @@ router.post('/signup', async (req, res) => {
   }
 });
 
-// Connexion
-// POST /api/auth/login
+// ===================== CONNEXION =====================
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
@@ -68,13 +67,13 @@ router.post('/login', async (req, res) => {
       { expiresIn: '7d' }
     );
 
-    // 🔐 Sauvegarde le refreshToken dans la base (optionnel, mais recommandé)
+    // 🔐 Sauvegarde le refreshToken dans la base
     user.refreshToken = refreshToken;
     await user.save();
 
     res.json({
       token: accessToken,
-      refreshToken, // ✅ Envoyé au frontend
+      refreshToken, // ✅ envoyé au frontend
       user: {
         fullName: user.fullName,
         email: user.email,
@@ -83,6 +82,53 @@ router.post('/login', async (req, res) => {
         courses: user.courses,
       },
     });
+  } catch (err) {
+    res.status(500).send('Erreur serveur');
+  }
+});
+
+// ===================== REFRESH TOKEN =====================
+router.post('/refresh', async (req, res) => {
+  const { refreshToken } = req.body;
+
+  if (!refreshToken) return res.status(401).json({ msg: 'Token manquant' });
+
+  try {
+    // Vérifie si le refreshToken existe en DB
+    const user = await User.findOne({ refreshToken });
+    if (!user) return res.status(403).json({ msg: 'Refresh token invalide' });
+
+    // Vérifie la validité du refreshToken
+    jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, (err, decoded) => {
+      if (err) return res.status(403).json({ msg: 'Refresh token expiré ou invalide' });
+
+      // Génère un nouvel accessToken
+      const newAccessToken = jwt.sign(
+        { userId: user._id },
+        process.env.JWT_SECRET,
+        { expiresIn: '1h' }
+      );
+
+      res.json({ token: newAccessToken });
+    });
+  } catch (err) {
+    res.status(500).send('Erreur serveur');
+  }
+});
+
+// ===================== LOGOUT =====================
+router.post('/logout', async (req, res) => {
+  const { refreshToken } = req.body;
+
+  try {
+    const user = await User.findOne({ refreshToken });
+    if (!user) return res.status(400).json({ msg: 'Utilisateur non trouvé' });
+
+    // Supprime le refreshToken de la DB
+    user.refreshToken = null;
+    await user.save();
+
+    res.json({ msg: 'Déconnexion réussie' });
   } catch (err) {
     res.status(500).send('Erreur serveur');
   }

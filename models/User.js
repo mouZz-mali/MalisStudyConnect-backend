@@ -1,4 +1,3 @@
-// models/User.js
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
@@ -8,6 +7,7 @@ const userSchema = new mongoose.Schema({
   university: { type: String, required: true },
   department: { type: String, required: true },
   courses: { type: [String], required: true },
+  refreshToken: { type: String }, // ✅ Ajouté : pour le rafraîchissement du token
   createdAt: { type: Date, default: Date.now },
 });
 
