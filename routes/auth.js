@@ -44,36 +44,56 @@ router.post('/signup', async (req, res) => {
 
 // ===================== CONNEXION =====================
 router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-
   try {
+    console.log('🔐 /login appelé');
+    console.log('📩 req.body:', req.body);
+
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ msg: 'Email et mot de passe requis' });
+    }
+
     const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ msg: 'Identifiants invalides' });
+    if (!user) {
+      console.log('❌ Utilisateur non trouvé');
+      return res.status(400).json({ msg: 'Identifiants invalides' });
+    }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ msg: 'Identifiants invalides' });
+    if (!isMatch) {
+      console.log('❌ Mot de passe incorrect');
+      return res.status(400).json({ msg: 'Identifiants invalides' });
+    }
 
-    // 🔐 Génère un accessToken (valide 1h)
+    // ✅ Vérifie que les secrets existent
+    if (!process.env.JWT_SECRET) {
+      console.error('❌ JWT_SECRET non défini');
+      return res.status(500).json({ msg: 'Erreur serveur : JWT_SECRET manquant' });
+    }
+    if (!process.env.REFRESH_TOKEN_SECRET) {
+      console.error('❌ REFRESH_TOKEN_SECRET non défini');
+      return res.status(500).json({ msg: 'Erreur serveur : REFRESH_TOKEN_SECRET manquant' });
+    }
+
     const accessToken = jwt.sign(
       { userId: user._id },
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
     );
 
-    // 🔁 Génère un refreshToken (valide 7 jours)
     const refreshToken = jwt.sign(
       { userId: user._id },
       process.env.REFRESH_TOKEN_SECRET,
       { expiresIn: '7d' }
     );
 
-    // 🔐 Sauvegarde le refreshToken dans la base
     user.refreshToken = refreshToken;
     await user.save();
 
     res.json({
       token: accessToken,
-      refreshToken, // ✅ envoyé au frontend
+      refreshToken,
       user: {
         fullName: user.fullName,
         email: user.email,
@@ -83,7 +103,9 @@ router.post('/login', async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(500).send('Erreur serveur');
+    console.error('💥 Erreur critique dans /login:', err.message);
+    console.error('Stack:', err.stack);
+    res.status(500).json({ error: 'Erreur serveur interne' });
   }
 });
 
