@@ -50,6 +50,7 @@ app.get('/test', async (req, res) => {
 
 // ✅ 6. Démarrage du serveur
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🟢 Serveur lancé sur le port ${PORT}`);
+console.log(`🔧 Port utilisé : ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🟢 Serveur lancé sur http://0.0.0.0:${PORT}`);
 });
