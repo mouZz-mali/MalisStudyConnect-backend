@@ -45,6 +45,9 @@ router.post('/signup', async (req, res) => {
 // ===================== CONNEXION =====================
 router.post('/login', async (req, res) => {
   try {
+    console.log('🔐 JWT_SECRET:', process.env.JWT_SECRET ? 'Présent' : 'MANQUANT');
+    console.log('🔁 REFRESH_TOKEN_SECRET:', process.env.REFRESH_TOKEN_SECRET ? 'Présent' : 'MANQUANT');
+    console.log('🌐 MONGO_URI:', process.env.MONGO_URI ? 'Présent' : 'MANQUANT');
     console.log('🔐 /login appelé');
     console.log('📩 req.body:', req.body);
 
