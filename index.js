@@ -54,3 +54,14 @@ console.log(`🔧 Port utilisé : ${PORT}`);
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🟢 Serveur lancé sur http://0.0.0.0:${PORT}`);
 });
+
+// ✅ 7. Route pour tester les variables d'environnement
+app.get('/test-env', (req, res) => {
+  res.json({
+    JWT_SECRET: !!process.env.JWT_SECRET,
+    REFRESH_TOKEN_SECRET: !!process.env.REFRESH_TOKEN_SECRET,
+    MONGO_URI: !!process.env.MONGO_URI,
+    NODE_ENV: process.env.NODE_ENV,
+    PORT: process.env.PORT,
+  });
+});
