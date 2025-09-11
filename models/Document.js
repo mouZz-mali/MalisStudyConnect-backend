@@ -1,11 +1,21 @@
+// models/Document.js
 const mongoose = require('mongoose');
 
 const documentSchema = new mongoose.Schema({
   title: { type: String, required: true },
   course: { type: String, required: true },
   year: { type: Number, required: true },
-  filePath: { type: String, required: true }, // ex: URL ou chemin local
-  uploader: { type: mongoose.Schema.Types.ObjectId, ref: 'user' },
+  type: { 
+    type: String, 
+    required: true,
+    enum: ['TD', 'TP', 'Résumé', 'Annale', 'Cours', 'Exercice']
+  },
+  filePath: { type: String, required: true },
+  author: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User', // ✅ Majuscule
+    required: true 
+  },
   ratings: [
     {
       user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
@@ -13,6 +23,7 @@ const documentSchema = new mongoose.Schema({
     }
   ],
   averageRating: { type: Number, default: 0 },
+  upvotes: { type: Number, default: 0 }, // ✅ Ajouté
   createdAt: { type: Date, default: Date.now }
 });
 
