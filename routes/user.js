@@ -16,4 +16,17 @@ router.get('/me', authJwt, async (req, res) => {
   }
 });
 
+// PUT /api/users/me/courses
+router.put('/me/courses', authJwt, async (req, res) => {
+  const { courses } = req.body;
+  try {
+    const user = await User.findById(req.user);
+    user.courses = courses; // Met à jour les cours
+    await user.save();
+    res.json({ courses: user.courses });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

@@ -1,4 +1,3 @@
-// routes/forum.js
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/authJwt');
@@ -110,6 +109,24 @@ router.post('/:id/downvote', auth, async (req, res) => {
     question.downvotes += 1;
     await question.save();
     res.json({ downvotes: question.downvotes });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/forum/:id
+router.delete('/:id', auth, async (req, res) => {
+  try {
+    const question = await ForumQuestion.findById(req.params.id);
+    if (!question) return res.status(404).json({ msg: 'Question non trouvée' });
+
+    // Vérifie que l'utilisateur est l'auteur
+    if (question.author.toString() !== req.user) {
+      return res.status(403).json({ msg: 'Action non autorisée' });
+    }
+
+    await question.remove();
+    res.json({ msg: 'Question supprimée' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

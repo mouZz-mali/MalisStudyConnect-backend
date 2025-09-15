@@ -1,4 +1,3 @@
-// routes/document.js
 const express = require('express');
 const router = express.Router();
 const Document = require('../models/Document');
@@ -75,6 +74,40 @@ router.post('/:id/upvote', auth, async (req, res) => {
     await document.save();
 
     res.json({ upvotes: document.upvotes });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/documents/:id
+router.delete('/:id', auth, async (req, res) => {
+  try {
+    const document = await Document.findById(req.params.id);
+    if (!document) return res.status(404).json({ msg: 'Document non trouvé' });
+
+    if (document.author.toString() !== req.user) {
+      return res.status(403).json({ msg: 'Non autorisé' });
+    }
+
+    await document.remove();
+    res.json({ msg: 'Document supprimé' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/documents/by-name/:name
+router.delete('/by-name/:name', auth, async (req, res) => {
+  try {
+    const document = await Document.findOne({ name: req.params.name });
+    if (!document) return res.status(404).json({ msg: 'Document non trouvé' });
+
+    if (document.author.toString() !== req.user) {
+      return res.status(403).json({ msg: 'Non autorisé' });
+    }
+
+    await document.remove();
+    res.json({ msg: 'Document supprimé' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
