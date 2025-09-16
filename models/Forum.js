@@ -23,7 +23,7 @@ const questionSchema = new mongoose.Schema({
   answers: [answerSchema],
   createdAt: { type: Date, default: Date.now },
   upvotes: { type: Number, default: 0 },
-  downvotes: { type: Number, default: 0 }
+  downvotes: { type: Number, default: 0, select: false } // ✅ masqué par défaut
 });
 
 module.exports = mongoose.model('ForumQuestion', questionSchema);

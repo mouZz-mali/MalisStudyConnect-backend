@@ -1,8 +1,10 @@
+// routes/auth.js
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const authJwt = require('../middleware/authJwt'); // ✅ importe ton middleware
 
 // ===================== INSCRIPTION =====================
 router.post('/signup', async (req, res) => {
@@ -69,7 +71,6 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ msg: 'Identifiants invalides' });
     }
 
-    // ✅ Vérifie que les secrets existent
     if (!process.env.JWT_SECRET) {
       console.error('❌ JWT_SECRET non défini');
       return res.status(500).json({ msg: 'Erreur serveur : JWT_SECRET manquant' });
@@ -119,15 +120,12 @@ router.post('/refresh', async (req, res) => {
   if (!refreshToken) return res.status(401).json({ msg: 'Token manquant' });
 
   try {
-    // Vérifie si le refreshToken existe en DB
     const user = await User.findOne({ refreshToken });
     if (!user) return res.status(403).json({ msg: 'Refresh token invalide' });
 
-    // Vérifie la validité du refreshToken
     jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, (err, decoded) => {
       if (err) return res.status(403).json({ msg: 'Refresh token expiré ou invalide' });
 
-      // Génère un nouvel accessToken
       const newAccessToken = jwt.sign(
         { userId: user._id },
         process.env.JWT_SECRET,
@@ -142,15 +140,13 @@ router.post('/refresh', async (req, res) => {
 });
 
 // ===================== LOGOUT =====================
-router.post('/logout', async (req, res) => {
-  const { refreshToken } = req.body;
-
+// ✅ version sécurisée avec authJwt
+router.post('/logout', authJwt, async (req, res) => {
   try {
-    const user = await User.findOne({ refreshToken });
+    const user = await User.findById(req.user); // req.user injecté par authJwt
     if (!user) return res.status(400).json({ msg: 'Utilisateur non trouvé' });
 
-    // Supprime le refreshToken de la DB
-    user.refreshToken = null;
+    user.refreshToken = null; // on vide le refresh token
     await user.save();
 
     res.json({ msg: 'Déconnexion réussie' });

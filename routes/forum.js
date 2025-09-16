@@ -1,13 +1,33 @@
+// routes/forum.js
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/authJwt');
 const ForumQuestion = require('../models/Forum');
+const rateLimit = require('express-rate-limit');
+const { sendSuccess, sendError } = require('../utils/response');
 
-// POST /api/forum
-router.post('/', auth, async (req, res) => {
+// =====================
+// Limiteurs
+// =====================
+const voteLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // max 10 votes par IP
+  message: { success: false, message: 'Trop de votes. Essayez plus tard.' },
+});
+
+const questionLimiter = rateLimit({
+  windowMs: 30 * 60 * 1000, // 30 minutes
+  max: 5, // max 5 questions par IP
+  message: { success: false, message: 'Trop de questions créées. Essayez plus tard.' },
+});
+
+// =====================
+// Créer une question
+// =====================
+router.post('/', auth, questionLimiter, async (req, res) => {
   const { title, content, course } = req.body;
   if (!title || !content || !course) {
-    return res.status(400).json({ msg: 'Tous les champs sont requis' });
+    return sendError(res, 'Tous les champs sont requis', 400);
   }
 
   try {
@@ -18,118 +38,139 @@ router.post('/', auth, async (req, res) => {
       author: req.user,
     });
     await question.save();
-    res.status(201).json(question);
+    sendSuccess(res, question, 'Question créée avec succès');
   } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ error: err.message });
+    sendError(res, 'Erreur serveur', 500, err.message);
   }
 });
 
-// GET /api/forum?course=...
+// =====================
+// Liste des questions
+// =====================
 router.get('/', auth, async (req, res) => {
   const { course } = req.query;
-  if (!course) {
-    return res.status(400).json({ msg: 'Le paramètre course est requis' });
-  }
+  if (!course) return sendError(res, 'Le paramètre course est requis', 400);
 
   try {
     const questions = await ForumQuestion.find({ course })
-      .populate('author', 'fullName email') // ✅ Renvoie le nom
+      .populate('author', 'fullName email')
+      .select('-downvotes')
       .sort({ createdAt: -1 });
-    res.json(questions);
+    sendSuccess(res, questions, 'Questions récupérées');
   } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ error: err.message });
+    sendError(res, 'Erreur serveur', 500, err.message);
   }
 });
 
-// POST /api/forum/:id/answers
+// =====================
+// Ajouter une réponse
+// =====================
 router.post('/:id/answers', auth, async (req, res) => {
   const { content } = req.body;
-  if (!content) {
-    return res.status(400).json({ msg: 'Le contenu est requis' });
-  }
+  if (!content) return sendError(res, 'Le contenu est requis', 400);
 
   try {
     const question = await ForumQuestion.findById(req.params.id);
-    if (!question) {
-      return res.status(404).json({ msg: 'Question non trouvée' });
-    }
+    if (!question) return sendError(res, 'Question non trouvée', 404);
 
-    question.answers.push({
-      author: req.user,
-      content,
-    });
-
+    question.answers.push({ author: req.user, content });
     await question.save();
-    res.status(201).json(question);
+    sendSuccess(res, question, 'Réponse ajoutée');
   } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ error: err.message });
+    sendError(res, 'Erreur serveur', 500, err.message);
   }
 });
 
-// GET /api/forum/:id/answers
+// =====================
+// Récupérer les réponses
+// =====================
 router.get('/:id/answers', auth, async (req, res) => {
   try {
     const question = await ForumQuestion.findById(req.params.id)
-      .populate('answers.author', 'fullName email'); // ✅ Renvoie le nom des auteurs des réponses
+      .populate('answers.author', 'fullName email');
+    if (!question) return sendError(res, 'Question non trouvée', 404);
 
-    if (!question) {
-      return res.status(404).json({ msg: 'Question non trouvée' });
-    }
-
-    res.json(question.answers);
+    sendSuccess(res, question.answers, 'Réponses récupérées');
   } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ error: err.message });
+    sendError(res, 'Erreur serveur', 500, err.message);
   }
 });
 
-// POST /api/forum/:id/upvote
-router.post('/:id/upvote', auth, async (req, res) => {
+// =====================
+// Upvote & Downvote (limité)
+// =====================
+router.post('/:id/upvote', auth, voteLimiter, async (req, res) => {
   try {
     const question = await ForumQuestion.findById(req.params.id);
-    if (!question) return res.status(404).json({ msg: 'Question non trouvée' });
+    if (!question) return sendError(res, 'Question non trouvée', 404);
 
     question.upvotes += 1;
     await question.save();
-    res.json({ upvotes: question.upvotes });
+    sendSuccess(res, { upvotes: question.upvotes }, 'Upvote enregistré');
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendError(res, 'Erreur serveur', 500, err.message);
   }
 });
 
-// POST /api/forum/:id/downvote
-router.post('/:id/downvote', auth, async (req, res) => {
+router.post('/:id/downvote', auth, voteLimiter, async (req, res) => {
   try {
     const question = await ForumQuestion.findById(req.params.id);
-    if (!question) return res.status(404).json({ msg: 'Question non trouvée' });
+    if (!question) return sendError(res, 'Question non trouvée', 404);
 
     question.downvotes += 1;
     await question.save();
-    res.json({ downvotes: question.downvotes });
+    sendSuccess(res, { downvotes: question.downvotes }, 'Downvote enregistré');
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendError(res, 'Erreur serveur', 500, err.message);
   }
 });
 
-// DELETE /api/forum/:id
+// =====================
+// Supprimer une question
+// =====================
 router.delete('/:id', auth, async (req, res) => {
   try {
     const question = await ForumQuestion.findById(req.params.id);
-    if (!question) return res.status(404).json({ msg: 'Question non trouvée' });
+    if (!question) return sendError(res, 'Question non trouvée', 404);
 
-    // Vérifie que l'utilisateur est l'auteur
     if (question.author.toString() !== req.user) {
-      return res.status(403).json({ msg: 'Action non autorisée' });
+      return sendError(res, 'Action non autorisée', 403);
     }
 
     await question.remove();
-    res.json({ msg: 'Question supprimée' });
+    sendSuccess(res, null, 'Question supprimée');
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendError(res, 'Erreur serveur', 500, err.message);
   }
 });
 
 module.exports = router;
+/**
+ * @swagger
+ * /forum:
+ *   post:
+ *     summary: Poster une question dans un cours
+ *     tags: [Forum]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               content:
+ *                 type: string
+ *               course:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Question créée
+ *       400:
+ *         description: Champs manquants
+ *       401:
+ *         description: Non autorisé
+ */

@@ -3,12 +3,12 @@ const router = express.Router();
 const Document = require('../models/Document');
 const auth = require('../middleware/authJwt');
 
-// POST /api/documents
+// ===================== CRÉER UN DOCUMENT =====================
 router.post('/', auth, async (req, res) => {
   try {
     const document = new Document({
       ...req.body,
-      author: req.user // ✅ L’auteur est l’utilisateur connecté
+      author: req.user // ✅ auteur = utilisateur connecté
     });
     await document.save();
     res.status(201).json(document);
@@ -18,7 +18,7 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
-// GET /api/documents?course=L2-Math
+// ===================== LISTER LES DOCUMENTS PAR COURS =====================
 router.get('/', auth, async (req, res) => {
   const { course } = req.query;
   if (!course) {
@@ -35,7 +35,7 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// POST /api/documents/:id/rate
+// ===================== NOTER UN DOCUMENT =====================
 router.post('/:id/rate', auth, async (req, res) => {
   const { rating } = req.body;
   if (!rating || rating < 1 || rating > 5) {
@@ -53,9 +53,8 @@ router.post('/:id/rate', auth, async (req, res) => {
     }
 
     document.ratings.push({ user: req.user, rating });
-    
-    const avg = document.ratings.reduce((a, b) => a + b.rating, 0) / document.ratings.length;
-    document.averageRating = avg;
+    document.averageRating =
+      document.ratings.reduce((a, b) => a + b.rating, 0) / document.ratings.length;
 
     await document.save();
     res.json({ averageRating: document.averageRating });
@@ -64,7 +63,7 @@ router.post('/:id/rate', auth, async (req, res) => {
   }
 });
 
-// POST /api/documents/:id/upvote
+// ===================== UPVOTE UN DOCUMENT =====================
 router.post('/:id/upvote', auth, async (req, res) => {
   try {
     const document = await Document.findById(req.params.id);
@@ -79,7 +78,7 @@ router.post('/:id/upvote', auth, async (req, res) => {
   }
 });
 
-// DELETE /api/documents/:id
+// ===================== SUPPRIMER UN DOCUMENT PAR ID =====================
 router.delete('/:id', auth, async (req, res) => {
   try {
     const document = await Document.findById(req.params.id);
@@ -89,28 +88,17 @@ router.delete('/:id', auth, async (req, res) => {
       return res.status(403).json({ msg: 'Non autorisé' });
     }
 
-    await document.remove();
+    await document.deleteOne();
     res.json({ msg: 'Document supprimé' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// DELETE /api/documents/by-name/:name
-router.delete('/by-name/:name', auth, async (req, res) => {
-  try {
-    const document = await Document.findOne({ name: req.params.name });
-    if (!document) return res.status(404).json({ msg: 'Document non trouvé' });
-
-    if (document.author.toString() !== req.user) {
-      return res.status(403).json({ msg: 'Non autorisé' });
-    }
-
-    await document.remove();
-    res.json({ msg: 'Document supprimé' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+/*
+⚠️ Ancienne route NON sécurisée :
+router.delete('/by-name/:name', ...) supprimée.
+Car "name" n’est pas unique → risques.
+*/
 
 module.exports = router;
