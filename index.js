@@ -45,6 +45,7 @@ app.use('/api/communities', require('./routes/community'));
 app.use('/api/documents', require('./routes/document'));
 app.use('/api/forum', require('./routes/forum'));
 app.use('/api/users', require('./routes/user'));
+app.use('/api/courses', require('./routes/courses'));
 
 // ========================
 // Routes de test

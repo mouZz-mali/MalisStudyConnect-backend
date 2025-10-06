@@ -45,6 +45,23 @@ router.put('/me/courses', authJwt, async (req, res) => {
 });
 
 // =====================
+// Supprimer un cours de la liste
+// =====================
+router.delete('/me/courses/:course', authJwt, async (req, res) => {
+  try {
+    const user = await User.findById(req.user);
+    if (!user) return sendError(res, 'Utilisateur non trouvé', 404);
+
+    user.courses = user.courses.filter(c => c !== req.params.course);
+    await user.save();
+
+    sendSuccess(res, { courses: user.courses }, 'Cours supprimé avec succès');
+  } catch (err) {
+    sendError(res, 'Erreur serveur', 500, err.message);
+  }
+});
+
+// =====================
 // Supprimer son compte et nettoyer les données associées
 // =====================
 router.delete('/me', authJwt, async (req, res) => {

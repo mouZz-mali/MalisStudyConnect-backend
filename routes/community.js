@@ -38,4 +38,20 @@ router.post('/', authJwt, async (req, res) => {
   }
 });
 
+// =====================
+// Supprimer une communauté
+// =====================
+router.delete('/:id', authJwt, async (req, res) => {
+  try {
+    const community = await Community.findById(req.params.id);
+    if (!community) return res.status(404).json({ error: 'Communauté non trouvée' });
+
+    // Optionnel : vérifier que le user est membre ou admin
+    await community.deleteOne();
+    res.json({ msg: 'Communauté supprimée' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
