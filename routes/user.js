@@ -12,10 +12,24 @@ const { sendSuccess, sendError } = require('../utils/response');
 // =====================
 router.get('/me', authJwt, async (req, res) => {
   try {
-    const user = await User.findById(req.user).select('-password -refreshToken');
+    const user = await User.findById(req.user)
+      .populate('university', 'name')
+      .populate('department', 'name');
     if (!user) return sendError(res, 'Utilisateur non trouvé', 404);
 
-    sendSuccess(res, user, 'Profil récupéré');
+    // Vérification des champs
+    if (!user.fullName || !user.university?.name || !user.department?.name) {
+      return sendError(res, 'Profil incomplet', 400);
+    }
+
+    sendSuccess(res, {
+      fullName: user.fullName,
+      university: user.university.name,
+      department: user.department.name,
+      email: user.email,
+      courses: user.courses,
+      // Ajoute ici d'autres champs utiles pour le front
+    });
   } catch (err) {
     sendError(res, 'Erreur serveur', 500, err.message);
   }
