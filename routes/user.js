@@ -103,4 +103,41 @@ router.delete('/me', authJwt, async (req, res) => {
   }
 });
 
+// =====================
+// Mettre à jour le profil utilisateur
+// =====================
+router.put('/profile', authJwt, async (req, res) => {
+  const { fullName, university, department, email } = req.body;
+
+  if (!fullName || !university || !department || !email) {
+    return sendError(res, 'Tous les champs sont requis', 400);
+  }
+
+  try {
+    const user = await User.findById(req.user);
+    if (!user) return sendError(res, 'Utilisateur non trouvé', 404);
+
+    user.fullName = fullName;
+    user.university = university;
+    user.department = department;
+    user.email = email;
+    await user.save();
+
+    // On retourne le profil mis à jour
+    const updatedUser = await User.findById(req.user)
+      .populate('university', 'name')
+      .populate('department', 'name');
+
+    sendSuccess(res, {
+      fullName: updatedUser.fullName,
+      university: updatedUser.university.name,
+      department: updatedUser.department.name,
+      email: updatedUser.email,
+      courses: updatedUser.courses,
+    }, 'Profil mis à jour avec succès');
+  } catch (err) {
+    sendError(res, 'Erreur serveur', 500, err.message);
+  }
+});
+
 module.exports = router;
