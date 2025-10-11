@@ -28,7 +28,6 @@ router.get('/me', authJwt, async (req, res) => {
       department: user.department.name,
       email: user.email,
       courses: user.courses,
-      // Ajoute ici d'autres champs utiles pour le front
     });
   } catch (err) {
     sendError(res, 'Erreur serveur', 500, err.message);
