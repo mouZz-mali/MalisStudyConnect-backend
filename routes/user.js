@@ -8,26 +8,24 @@ const authJwt = require('../middleware/authJwt');
 const { sendSuccess, sendError } = require('../utils/response');
 
 // =====================
-// Profil utilisateur
+// Profil utilisateur - VERSION DEBUG TOKEN
 // =====================
 router.get('/me', authJwt, async (req, res) => {
   try {
+    console.log("Utilisateur connecté :", req.user); // 👈 voir l'ID reçu
     const user = await User.findById(req.user);
+    console.log("Utilisateur trouvé :", user); // 👈 vérifier le contenu
+
     if (!user) return sendError(res, 'Utilisateur non trouvé', 404);
 
-    // Vérification des champs
     if (!user.fullName || !user.university || !user.department) {
+      console.log("Champs manquants :", user.fullName, user.university, user.department);
       return sendError(res, 'Profil incomplet', 400);
     }
 
-    sendSuccess(res, {
-      fullName: user.fullName,
-      university: user.university,     // <- supprime .name
-      department: user.department,     // <- supprime .name
-      email: user.email,
-      courses: user.courses,
-    });
+    sendSuccess(res, user);
   } catch (err) {
+    console.error("Erreur serveur :", err);
     sendError(res, 'Erreur serveur', 500, err.message);
   }
 });
