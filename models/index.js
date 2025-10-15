@@ -1,6 +1,7 @@
 // models/index.js
 // Centralisation de tous les modèles
 
+
 // ✅ Modèle User
 require('./User');
 
